@@ -1,0 +1,52 @@
+version: '3.3'
+
+services:  
+  mysql:
+    image: mysql/mysql-server:5.7
+    container_name: web_mysql
+    restart: always
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - 3306:3306
+    volumes:      
+      - ./sql:/docker-entrypoint-initdb.d
+    command:
+      --explicit_defaults_for_timestamp=true
+      --lower_case_table_names=1
+      --max_allowed_packet=512M
+      --sql-mode="STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"
+  web:
+    build: ./tomcat
+    container_name: tomcat
+    restart: always
+    links:
+      - mysql
+    ports:
+      - "8860:8080"    
+    volumes:
+      - ./www/apps:/home/web/apps/
+    depends_on:
+       - mysql
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: web_pmy
+    links:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8861:80
+  apache:
+    build: ./apache
+    restart: always
+    ports:
+      - "85:80"
+    depends_on:
+      - web
